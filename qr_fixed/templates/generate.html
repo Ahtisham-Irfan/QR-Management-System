@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Generate QR Code - QR Code Generator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <h1 class="mb-4">Generate QR Code</h1>
+        <form id="qrForm">
+            <div class="mb-3">
+                <label for="title" class="form-label">QR Code Title</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="qrType" class="form-label">QR Code Type</label>
+                <select class="form-select" id="qrType" name="qr_type" onchange="updateForm()" required>
+                    <option value="URL">Website URL</option>
+                    <option value="Text">Plain Text</option>
+                    <option value="Email">Email</option>
+                    <option value="Phone">Phone Number</option>
+                    <option value="SMS">SMS</option>
+                    <option value="WiFi">WiFi Credentials</option>
+                    <option value="vCard">Contact (vCard)</option>
+                    <option value="Maps">Google Maps Location</option>
+                    <option value="WhatsApp">WhatsApp Link</option>
+                </select>
+            </div>
+
+            <div id="contentFields">
+                <div class="mb-3">
+                    <label for="content" class="form-label">Content</label>
+                    <input type="text" class="form-control" id="content" name="content" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="fillColor" class="form-label">QR Code Color</label>
+                <input type="color" class="form-control form-control-color" id="fillColor" name="fill_color" value="#000000">
+            </div>
+
+            <div class="mb-3">
+                <label for="backColor" class="form-label">Background Color</label>
+                <input type="color" class="form-control form-control-color" id="backColor" name="back_color" value="#FFFFFF">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100">Generate QR Code</button>
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Preview</h5>
+                <div id="preview" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+                    <p class="text-muted">QR code preview will appear here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const qrTypeFields = {
+    'URL': `<div class="mb-3"><label for="content" class="form-label">Website URL</label><input type="url" class="form-control" id="content" name="content" required></div>`,
+    'Text': `<div class="mb-3"><label for="content" class="form-label">Text Content</label><textarea class="form-control" id="content" name="content" rows="3" required></textarea></div>`,
+    'Email': `<div class="mb-3"><label for="email" class="form-label">Email Address</label><input type="email" class="form-control" id="email" name="email" required></div><div class="mb-3"><label for="subject" class="form-label">Subject</label><input type="text" class="form-control" id="subject" name="subject"></div><div class="mb-3"><label for="body" class="form-label">Message Body</label><textarea class="form-control" id="body" name="body" rows="2"></textarea></div>`,
+    'Phone': `<div class="mb-3"><label for="phone" class="form-label">Phone Number</label><input type="tel" class="form-control" id="phone" name="phone" required></div>`,
+    'SMS': `<div class="mb-3"><label for="phone" class="form-label">Phone Number</label><input type="tel" class="form-control" id="phone" name="phone" required></div><div class="mb-3"><label for="message" class="form-label">Message</label><textarea class="form-control" id="message" name="message" rows="2" required></textarea></div>`,
+    'WiFi': `<div class="mb-3"><label for="ssid" class="form-label">Network Name (SSID)</label><input type="text" class="form-control" id="ssid" name="ssid" required></div><div class="mb-3"><label for="security" class="form-label">Security Type</label><select class="form-select" id="security" name="security"><option value="WPA">WPA</option><option value="WEP">WEP</option><option value="nopass">No Password</option></select></div><div class="mb-3"><label for="password" class="form-label">Password</label><input type="password" class="form-control" id="password" name="password"></div>`,
+    'vCard': `<div class="mb-3"><label for="name" class="form-label">Full Name</label><input type="text" class="form-control" id="name" name="name" required></div><div class="mb-3"><label for="phone" class="form-label">Phone</label><input type="tel" class="form-control" id="phone" name="phone"></div><div class="mb-3"><label for="email" class="form-label">Email</label><input type="email" class="form-control" id="email" name="email"></div>`,
+    'Maps': `<div class="mb-3"><label for="lat" class="form-label">Latitude</label><input type="number" class="form-control" id="lat" name="lat" step="0.0001" required></div><div class="mb-3"><label for="lng" class="form-label">Longitude</label><input type="number" class="form-control" id="lng" name="lng" step="0.0001" required></div>`,
+    'WhatsApp': `<div class="mb-3"><label for="phone" class="form-label">Phone Number (with country code)</label><input type="tel" class="form-control" id="phone" name="phone" required></div><div class="mb-3"><label for="message" class="form-label">Message</label><textarea class="form-control" id="message" name="message" rows="2"></textarea></div>`
+};
+
+function updateForm() {
+    const qrType = document.getElementById('qrType').value;
+    document.getElementById('contentFields').innerHTML = qrTypeFields[qrType];
+}
+
+document.getElementById('qrForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const qrType = formData.get('qr_type');
+    
+    // Build content object based on QR type
+    const contentObj = {};
+    for (let [key, value] of formData.entries()) {
+        if (key !== 'title' && key !== 'qr_type' && key !== 'fill_color' && key !== 'back_color') {
+            contentObj[key] = value;
+        }
+    }
+    
+    const payload = {
+        title: formData.get('title'),
+        qr_type: qrType,
+        content: contentObj,
+        fill_color: formData.get('fill_color'),
+        back_color: formData.get('back_color')
+    };
+    
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('preview').innerHTML = `<img src="${data.file_path}" class="qr-preview" alt="Generated QR Code">`;
+            alert('QR Code generated successfully!');
+            setTimeout(() => window.location.href = '/dashboard', 1500);
+        }
+    } catch (error) {
+        alert('Error generating QR code: ' + error);
+    }
+});
+
+// Initialize form on page load
+updateForm();
+</script>
+{% endblock %}

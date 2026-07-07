@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - QR Code Generator{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1 class="mb-4">Your QR Codes</h1>
+        <a href="/generate" class="btn btn-primary btn-lg">+ Generate New QR Code</a>
+        <a href="#" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">📤 Bulk Upload</a>
+    </div>
+</div>
+
+<div class="row" id="qr-container">
+    {% if qrs %}
+        {% for qr in qrs %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <img src="{{ url_for('static', filename='qr_codes/' + qr.file_path) }}" alt="{{ qr.title }}" class="qr-preview mb-3">
+                    <h5 class="card-title">{{ qr.title }}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">Type: {{ qr.qr_type }}</small><br>
+                        <small class="text-muted">Created: {{ qr.created_at.strftime('%Y-%m-%d') }}</small><br>
+                        <small class="text-muted">Downloads: {{ qr.downloads }}</small>
+                    </p>
+                    <div class="btn-group" role="group">
+                        <a href="/download/{{ qr.id }}" class="btn btn-sm btn-primary">Download</a>
+                        <button class="btn btn-sm btn-danger" onclick="deleteQR({{ qr.id }})">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-md-12">
+        <div class="alert alert-info text-center">
+            <p>No QR codes yet. <a href="/generate">Create your first QR code</a></p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Upload QR Codes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Upload a CSV file with columns: title, type, content</p>
+                <input type="file" id="bulkFile" class="form-control" accept=".csv">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="uploadBulk()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteQR(qrId) {
+    if (confirm('Are you sure you want to delete this QR code?')) {
+        fetch(`/delete/${qrId}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+    }
+}
+
+function uploadBulk() {
+    const file = document.getElementById('bulkFile').files[0];
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/bulk-upload', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Bulk upload completed!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+}
+</script>
+{% endblock %}

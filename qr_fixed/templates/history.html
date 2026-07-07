@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Activity History - QR Code Generator{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Activity History</h1>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td><span class="badge bg-primary">{{ log.action }}</span></td>
+                        <td>{{ log.details or '-' }}</td>
+                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">No activity history yet</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
